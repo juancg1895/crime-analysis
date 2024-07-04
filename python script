@@ -1,0 +1,80 @@
+# Import required libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+crimes = pd.read_csv("crimes.csv", parse_dates=["Date Rptd", "DATE OCC"], dtype={"TIME OCC": str})
+crimes.head()
+
+# peak_crime_hour
+
+crimes['TIME OCC'] = crimes['TIME OCC'].astype(str).str.zfill(4)
+
+crimes['hour']=crimes['TIME OCC'].str[:2].astype(int)
+
+peak_crime=crimes.groupby('hour')['hour'].count()
+peak_crime=peak_crime.sort_values(ascending=False)
+peak_crime_hour_value = peak_crime.head(1).index[0]
+peak_crime_hour_count=peak_crime.head(1).values[0]
+
+peak_crime_hour=peak_crime_hour_value
+
+print(f'The peak time hour for this data set is  {peak_crime_hour}:00 ')
+
+plt.figure(figsize=(10, 6))
+sns.histplot(data=crimes, x='hour', bins=24, kde=True)
+
+# Highlight the peak crime hour
+plt.axvline(peak_crime_hour_value, color='red', linestyle='--')
+plt.text(peak_crime_hour_value, peak_crime_hour_count, f' Peak Hour: {peak_crime_hour_value}\n Count: {peak_crime_hour_count}', 
+         color='red', ha='left', va='bottom')
+
+# Add titles and labels
+plt.title('Distribution of Crime Hours')
+plt.xlabel('Hour of the Day')
+plt.ylabel('Number of Crimes')
+plt.xticks(range(0, 24))
+
+# Show the plot
+plt.show()
+
+
+crimes['TIME OCC'] = crimes['TIME OCC'].astype(str)
+crimes['DateTime'] = pd.to_datetime(crimes['TIME OCC'], format='%H%M', errors='coerce').dt.time
+peak_night = crimes[(crimes['DateTime'] > pd.to_datetime('22:00', format='%H:%M').time()) | 
+                    (crimes['DateTime'] < pd.to_datetime('03:59', format='%H:%M').time())]
+
+peak_night_crime_location=peak_night.groupby('AREA NAME')['AREA NAME'].count()
+peak_night_crime_location=peak_night_crime_location.sort_values(ascending=False)
+peak_night_crime_location = peak_night_crime_location.head(1).index[0]
+print(peak_night_crime_location)
+
+plt.figure(figsize=(10, 6))
+sns.histplot(data=peak_night, x='AREA NAME', stat='count', kde=False)
+plt.title('Crime Distribution in Different Areas during Peak Nighttime Hours')
+plt.xlabel('Area Name')
+plt.ylabel('Number of Crimes')
+plt.xticks(rotation=45)
+plt.annotate(f'Highest Crime Area: {peak_night_crime_location}', xy=(0.5, 0.9), xycoords='axes fraction', ha='center', fontsize=12, color='red')
+plt.tight_layout()
+plt.show()
+
+
+
+bins = [17, 25, 34, 44, 54, 64, 200]
+labels = ['18-25', '26-34', '35-44', '45-54', '55-64', '65+']
+
+crimes['victim_ages'] = pd.cut(crimes['Vict Age'], bins=bins, labels=labels)
+
+victim_ages=crimes.groupby('victim_ages')['victim_ages'].count()
+
+print(victim_ages)
+
+plt.figure(figsize=(10, 6))
+sns.barplot(x=victim_ages.index, y=victim_ages.values, palette="viridis")
+
+plt.title('Distribution of Victim Ages')
+plt.xlabel('Age Group')
+plt.ylabel('Number of Crimes')
+
+plt.show()
